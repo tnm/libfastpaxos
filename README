@@ -1,0 +1,5 @@
+The library is still in development, this version however is usable.
+More details and proper code documentation coming soon, for the moment you can refer to the tests for usage examples.
+
+NOTE To Linux users:
+This library was tested on Mac OS X only, i never even tried to compile on Linux. I'll make sure everything works as soon as possible.
