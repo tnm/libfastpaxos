@@ -33,6 +33,8 @@ static int send_socket;
 static struct sockaddr_in acceptor_net_addr;
 static int leader = 0;
 
+static deliver_function client_deliver_func = NULL;
+
 typedef struct timeout_info_t {
     int instance_id;
     int hash;
@@ -94,6 +96,10 @@ void proposer_deliver_callback(char * value, size_t size, int iid, int ballot, i
         return;
     }
     
+    if(client_deliver_func != NULL) {
+        client_deliver_func(value, size, iid, ballot, proposer);
+    }
+    
     // Value delivered, my val?
     if(proposer_id == proposer) {
         LOG(4, ("Client value delivered (iid: %d) Wake up!.\n", just_accepted));
@@ -151,6 +157,14 @@ int proposer_init(int prop_id, int is_leader) {
     }
 
     return 0;
+}
+
+int proposer_init_and_deliver(int prop_id, int is_leader, deliver_function f) {
+    if(proposer_init(proposer_id, is_leader) == 0) {
+        client_deliver_func = f;
+        return 0;
+    }
+    return -1;
 }
 
 void proposer_submit_value(char * value, size_t val_size) {

@@ -4,7 +4,13 @@
 #include <string.h>
 #include <limits.h>
 #include <sys/time.h>
+#include <assert.h>
+
 #include "libpaxos.h"
+
+//THIS IS IDENTICAL TO PROPOSER_MAIN
+// But uses alternative proposer_init_and_deliver
+// The deliver function just prints a dot
 
 #define MAX_VALUE_SIZE 8192
 
@@ -14,17 +20,30 @@ static int value_size = 400;
 static char buffer[MAX_VALUE_SIZE];
 static int measure_avg_time = 0;
 
+static deliver_function deliver_func = NULL;
+
 void pusage() {
     printf("-i N : Proposer id\n");
     printf("-k N : Exit after proposing N values\n");
     printf("-s N : Propose values of size N (max %d)", MAX_VALUE_SIZE);
     printf("-r   : Measure average time to propose a values\n");
+    printf("-l   : Adds a callback to all delivered values\n");
     printf("-h   : prints this message\n");
+}
+
+int last_instance = -1;
+void deliver(char * value, size_t size, int iid, int ballot, int proposer) {
+    last_instance++;
+    if(iid != last_instance) {
+        printf("Error: Expecting instance id:%d, received:%d\n", last_instance, iid);
+        last_instance = iid;
+    }
+    putchar('.');
 }
 
 void parse_args(int argc, char * const argv[]) {
     int c;
-    while((c = getopt(argc, argv, "i:k:s:rh")) != -1) {
+    while((c = getopt(argc, argv, "i:k:s:rlh")) != -1) {
         switch(c) {
             case 'i': proposer_id = atoi(optarg);
             break;
@@ -34,6 +53,9 @@ void parse_args(int argc, char * const argv[]) {
             break;
             case 'r': measure_avg_time = 1;
             break;
+            case 'l': deliver_func = deliver;
+            break;
+            
             case 'h':
             default: {
                 pusage();
@@ -108,9 +130,11 @@ void propose_value_instrumented() {
 int main (int argc, char const *argv[]) {
     parse_args(argc, (char **)argv);
     
-    printf("Proposer %d starting\n", proposer_id);    
+    printf("Proposer %d starting\n", proposer_id); 
 
-    if (proposer_init(proposer_id, 0) < 0) {
+
+    // if the third arg is NULL is equivalent to proposer_init()
+    if (proposer_init_and_deliver(proposer_id, 0, deliver_func) < 0) {
         printf("proposer init failed!\n");
         exit(1);
     }
